@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BK UNIVERSAL POS</title>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:#F6F8FE;color:#12234F}
+header{background:#2563EB;color:#fff;padding:14px;font-weight:800}
+main{max-width:420px;margin:16px auto;padding:0 14px}
+.card{background:#fff;border:1px solid #DCE4F8;border-radius:14px;padding:16px}
+input{width:100%;box-sizing:border-box;padding:12px;margin:6px 0 12px;border:1px solid #DCE4F8;border-radius:10px;font-size:16px}
+button{width:100%;padding:13px;border:0;border-radius:12px;font-size:16px;font-weight:700;color:#fff;background:#2563EB;margin-top:4px}
+button.s{background:#EC4899}
+#msg{margin-top:12px;padding:10px;border-radius:10px;background:#FEEEDF;display:none}
+</style>
+</head>
+<body>
+<header>BK UNIVERSAL POS</header>
+<main>
+<div class="card" id="authBox">
+<h2>Login / Register</h2>
+<label>Email</label>
+<input id="email" type="email" autocomplete="email">
+<label>Password (min 6 characters)</label>
+<input id="pass" type="password" autocomplete="current-password">
+<button id="loginBtn">Login</button>
+<button class="s" id="regBtn">Create new account</button>
+</div>
+<div class="card" id="homeBox" style="display:none">
+<h2>Welcome</h2>
+<p id="who"></p>
+<button id="outBtn">Logout</button>
+</div>
+<div id="msg"></div>
+</main>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+const app=initializeApp({
+apiKey:"AIzaSyDn1DwJZZd1QqNvXHyBQLOjyAJGRYext2Y",
+authDomain:"bk-universel-pos.firebaseapp.com",
+projectId:"bk-universel-pos",
+storageBucket:"bk-universel-pos.firebasestorage.app",
+messagingSenderId:"387558203185",
+appId:"1:387558203185:web:08bce63843120c0d1bda10"
+});
+const auth=getAuth(app);
+const $=id=>document.getElementById(id);
+function show(t){const m=$("msg");m.textContent=t;m.style.display="block"}
+$("regBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value);show("Account created.")}catch(e){show("Error: "+e.code)}};
+$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value);show("Login successful.")}catch(e){show("Error: "+e.code)}};
+$("outBtn").onclick=()=>signOut(auth);
+onAuthStateChanged(auth,u=>{
+$("authBox").style.display=u?"none":"block";
+$("homeBox").style.display=u?"block":"none";
+if(u)$("who").textContent="Logged in as: "+u.email;
+});
+</script>
+</body>
+</html>
