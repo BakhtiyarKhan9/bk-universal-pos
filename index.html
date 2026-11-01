@@ -10,27 +10,44 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
+:root{--blue:#1D4ED8;--blue-dark:#1E3A8A;--pink:#EC4899;--pink-dark:#DB2777;--orange:#F97316;--orange-dark:#EA580C;--bg:#F5F7FF;--text:#1E2A4A}
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f2f5fa;color:#17233b}
-header{background:#102c59;color:white;padding:18px;font-size:22px;font-weight:bold}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(90deg,var(--blue-dark),var(--blue));color:#fff;padding:18px;font-size:22px;font-weight:bold;border-bottom:4px solid var(--orange)}
 .container{max-width:1100px;margin:auto;padding:20px}
-.card{background:white;padding:20px;margin:12px 0;border-radius:12px;box-shadow:0 2px 10px #0001}
-input,select,button{padding:12px;margin:6px 0;width:100%;border:1px solid #ccd4e0;border-radius:7px;font-size:15px}
-button{background:#174a91;color:white;border:0;cursor:pointer;font-weight:bold}
-button:hover{background:#0c3268}
+.card{background:#fff;padding:20px;margin:12px 0;border-radius:12px;border-top:4px solid var(--pink);box-shadow:0 2px 10px #1e3a8a1a}
+.card h2,.card h3{color:var(--blue-dark)}
+input,select,button{padding:12px;margin:6px 0;width:100%;border:1px solid #cfd8f3;border-radius:7px;font-size:15px}
+input:focus,select:focus{outline:2px solid var(--pink);border-color:var(--pink)}
+button{background:var(--blue);color:#fff;border:0;cursor:pointer;font-weight:bold}
+button:hover{background:var(--blue-dark)}
+button.pink{background:var(--pink)}
+button.pink:hover{background:var(--pink-dark)}
+button.orange{background:var(--orange)}
+button.orange:hover{background:var(--orange-dark)}
+button.danger{background:var(--orange-dark)}
+button.danger:hover{background:#C2410C}
 button:disabled{opacity:.5;cursor:not-allowed}
 button.mini{width:auto;padding:8px 12px;margin:2px;font-size:13px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.stat{background:#eaf1ff;padding:18px;border-radius:10px}
-.stat h2{color:#174a91;margin:8px 0}
+.stat{background:#EAF0FF;padding:18px;border-radius:10px;border-left:6px solid var(--blue)}
+.stat:nth-child(2n){border-left-color:var(--pink);background:#FFF0F7}
+.stat:nth-child(3n){border-left-color:var(--orange);background:#FFF4EA}
+.stat h2{color:var(--blue-dark);margin:8px 0}
 nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
 nav button{width:auto;flex:1;min-width:100px}
 table{width:100%;border-collapse:collapse;background:white}
-td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}
+th{color:var(--blue-dark)}
+td,th{padding:10px;border-bottom:1px solid #E3E8FB;text-align:left}
 .hidden{display:none}
-.small{color:#65738a;font-size:13px}
-.danger{background:#b52c36}
-.low{color:#b52c36;font-weight:bold}
+.small{color:#5B6A8C;font-size:13px}
+.low{color:var(--orange-dark);font-weight:bold}
+@media print{
+body *{visibility:hidden}
+#receiptBox,#receiptBox *{visibility:visible}
+#receiptBox{position:absolute;left:0;top:0;width:100%;box-shadow:none}
+#receiptBox .noprint{display:none}
+}
 </style>
 </head>
 
@@ -45,8 +62,8 @@ td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}
 <input id="email" type="email" placeholder="Email address" autocomplete="email">
 <input id="password" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password">
 <button id="loginBtn" onclick="login()">Login</button>
-<button id="regBtn" onclick="register()" style="background:#EC4899">Create Account</button>
-<button id="forgotBtn" onclick="forgotPassword()" style="background:#64748B">Forgot Password</button>
+<button id="regBtn" class="pink" onclick="register()">Create Account</button>
+<button id="forgotBtn" class="orange" onclick="forgotPassword()">Forgot Password</button>
 <p id="authMessage" class="small"></p>
 </section>
 
@@ -146,6 +163,14 @@ td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}
 <button onclick="searchSaleProduct()">Find Product</button>
 <div id="saleProduct" class="small"></div>
 <input id="saleQuantity" type="number" min="0" step="any" value="1" placeholder="Quantity">
+<button class="pink" onclick="addToCart()">Add to Cart</button>
+</div>
+<div class="card">
+<h3>Cart</h3>
+<div id="cartList" class="small">Cart is empty.</div>
+<label class="small">Discount (amount)</label>
+<input id="discount" type="number" min="0" step="any" value="0" oninput="renderCart()">
+<div id="cartTotals"></div>
 <select id="paymentMethod">
 <option>Cash</option>
 <option>Card</option>
@@ -155,6 +180,7 @@ td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}
 <button id="saleBtn" onclick="completeSale()">Complete Sale</button>
 <p id="saleMessage" class="small"></p>
 </div>
+<div id="receiptBox" class="card hidden"></div>
 </div>
 
 </section>
@@ -180,7 +206,10 @@ let businessId = null;
 let selectedProduct = null;
 let products = [];
 let sales = [];
+let cart = [];
 let businessCurrency = "PKR";
+let bizName = "";
+let bizPhone = "";
 let editingId = null;
 
 const ERR = {
@@ -245,12 +274,16 @@ async function forgotPassword(){
 async function logout(){ await auth.signOut(); }
 
 function clearUI(){
-  businessId = null; products = []; sales = []; selectedProduct = null; editingId = null;
+  businessId = null; products = []; sales = []; cart = []; selectedProduct = null; editingId = null;
+  bizName = ""; bizPhone = "";
   ["businessName","ownerName","country","city","phone","saleSearch","productSearch"].forEach(id => $(id).value = "");
   $("saleProduct").textContent = "";
+  $("discount").value = "0";
+  $("receiptBox").classList.add("hidden");
   ["businessMessage","productMessage","saleMessage"].forEach(id => $(id).textContent = "");
   cancelEdit();
   renderProducts();
+  renderCart();
   updateDashboard();
 }
 
@@ -325,6 +358,8 @@ async function loadBusiness(){
     businessId = d.id;
     const b = d.data();
     businessCurrency = b.currency || "PKR";
+    bizName = b.name || "";
+    bizPhone = b.phone || "";
     $("businessName").value = b.name || "";
     $("ownerName").value = b.ownerName || "";
     $("country").value = b.country || "";
@@ -349,9 +384,15 @@ async function saveProduct(){
     return message("productMessage","Enter product name, purchase price, sale price and stock (non-negative numbers).");
   }
 
+  const unit = $("unit").value;
+  const dup = products.find(p => p.id !== editingId &&
+    (p.name||"").trim().toLowerCase() === name.toLowerCase() && (p.unit||"") === unit);
+  if(dup){
+    return message("productMessage","A product with this name and unit already exists. Please edit that one instead.");
+  }
+
   const data = {
-    name,
-    unit: $("unit").value,
+    name, unit,
     sku: $("sku").value.trim(),
     barcode: $("barcode").value.trim(),
     cost, price, stock, minStock
@@ -442,6 +483,8 @@ async function deleteProduct(id){
   try{
     await db.collection("businesses").doc(businessId).collection("products").doc(id).delete();
     if(editingId === id) cancelEdit();
+    cart = cart.filter(c => c.id !== id);
+    renderCart();
     await loadProducts();
   }catch(e){ message("productMessage", errText(e)); }
 }
@@ -457,57 +500,137 @@ function searchSaleProduct(){
     : "Product not found.";
 }
 
-async function completeSale(){
-  if(!businessId || !selectedProduct) return message("saleMessage","Select a product first.");
-
-  const quantity = Number($("saleQuantity").value);
-  const method = $("paymentMethod").value;
-  if(!Number.isFinite(quantity) || quantity <= 0){
-    return message("saleMessage","Enter a valid quantity greater than zero.");
+function addToCart(){
+  if(!selectedProduct) return message("saleMessage","Find a product first.");
+  const q = Number($("saleQuantity").value);
+  if(!Number.isFinite(q) || q <= 0) return message("saleMessage","Enter a valid quantity greater than zero.");
+  const existing = cart.find(c => c.id === selectedProduct.id);
+  const newQty = round3((existing ? existing.qty : 0) + q);
+  if(newQty > Number(selectedProduct.stock)){
+    return message("saleMessage","Not enough stock. Available: " + selectedProduct.stock);
   }
+  if(existing){ existing.qty = newQty; }
+  else{
+    cart.push({id:selectedProduct.id, name:selectedProduct.name, unit:selectedProduct.unit||"", qty:q, price:Number(selectedProduct.price)});
+  }
+  selectedProduct = null;
+  $("saleSearch").value = "";
+  $("saleProduct").textContent = "";
+  $("saleQuantity").value = "1";
+  message("saleMessage","Added to cart.");
+  renderCart();
+}
 
-  const productRef = db.collection("businesses").doc(businessId).collection("products").doc(selectedProduct.id);
-  const saleRef = db.collection("businesses").doc(businessId).collection("sales").doc();
+function removeFromCart(i){
+  cart.splice(i,1);
+  renderCart();
+}
+
+function renderCart(){
+  if(!cart.length){
+    $("cartList").textContent = "Cart is empty.";
+    $("cartTotals").textContent = "";
+    return;
+  }
+  let sub = 0;
+  $("cartList").innerHTML = "<table><tbody>" + cart.map((c,i) => {
+    const line = round2(c.price * c.qty);
+    sub += line;
+    return `<tr>
+      <td>${escapeHTML(c.name)}<div class="small">${c.qty} ${escapeHTML(c.unit)} × ${c.price.toFixed(2)}</div></td>
+      <td>${line.toFixed(2)}</td>
+      <td><button class="mini danger" onclick="removeFromCart(${i})">X</button></td>
+    </tr>`;
+  }).join("") + "</tbody></table>";
+  const disc = Math.max(0, Number($("discount").value) || 0);
+  $("cartTotals").innerHTML =
+    `<p>Subtotal: ${round2(sub).toFixed(2)} ${escapeHTML(businessCurrency)}<br><b>Total: ${round2(sub - disc).toFixed(2)} ${escapeHTML(businessCurrency)}</b></p>`;
+}
+
+async function completeSale(){
+  if(!businessId || !cart.length) return message("saleMessage","Cart is empty.");
+  const discount = Number($("discount").value || 0);
+  if(!Number.isFinite(discount) || discount < 0) return message("saleMessage","Enter a valid discount.");
+  const method = $("paymentMethod").value;
+
+  const bizRef = db.collection("businesses").doc(businessId);
+  const saleRef = bizRef.collection("sales").doc();
+  const cartCopy = cart.map(c => ({...c}));
 
   $("saleBtn").disabled = true;
   try{
-    let total = 0;
+    let receipt = null;
     await db.runTransaction(async tx => {
-      const productDoc = await tx.get(productRef);
-      if(!productDoc.exists) throw new Error("Product no longer exists.");
+      const bizDoc = await tx.get(bizRef);
+      const refs = cartCopy.map(c => bizRef.collection("products").doc(c.id));
+      const docs = await Promise.all(refs.map(r => tx.get(r)));
 
-      const p = productDoc.data();
-      if(Number(p.stock) < quantity) throw new Error("Insufficient stock. Available: " + p.stock);
+      const items = [];
+      let subtotal = 0, costTotal = 0;
+      docs.forEach((d,i) => {
+        if(!d.exists) throw new Error(cartCopy[i].name + " no longer exists.");
+        const p = d.data(), q = cartCopy[i].qty;
+        if(Number(p.stock) < q) throw new Error("Not enough stock for " + p.name + ". Available: " + p.stock);
+        const line = round2(Number(p.price) * q);
+        const lineCost = round2(Number(p.cost||0) * q);
+        subtotal += line; costTotal += lineCost;
+        items.push({productId:d.id, name:p.name, unit:p.unit||"", qty:q,
+                    unitPrice:Number(p.price), unitCost:Number(p.cost||0), lineTotal:line});
+      });
+      subtotal = round2(subtotal); costTotal = round2(costTotal);
+      if(discount > subtotal) throw new Error("Discount cannot be more than the subtotal.");
+      const total = round2(subtotal - discount);
 
-      total = round2(Number(p.price) * quantity);
-      const costTotal = round2(Number(p.cost||0) * quantity);
-      tx.update(productRef, {stock: round3(Number(p.stock) - quantity)});
+      const n = Number(bizDoc.data().invoiceCounter || 0) + 1;
+      const invoiceNo = "INV-" + String(n).padStart(5,"0");
+
+      docs.forEach((d,i) => tx.update(refs[i], {stock: round3(Number(d.data().stock) - cartCopy[i].qty)}));
+      tx.update(bizRef, {invoiceCounter: n});
       tx.set(saleRef, {
-        productId: selectedProduct.id,
-        productName: p.name,
-        unit: p.unit || "",
-        quantity,
-        unitPrice: Number(p.price),
-        unitCost: Number(p.cost||0),
-        total,
-        costTotal,
+        invoiceNo, items, subtotal, discount, total, costTotal,
         profit: round2(total - costTotal),
         currency: businessCurrency,
         paymentMethod: method,
         cashierId: currentUser.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      receipt = {invoiceNo, items, subtotal, discount, total, method};
     });
 
-    message("saleMessage","Sale completed: " + total.toFixed(2) + " " + businessCurrency);
-    selectedProduct = null;
-    $("saleProduct").textContent = "";
-    $("saleSearch").value = "";
-    $("saleQuantity").value = "1";
+    cart = [];
+    $("discount").value = "0";
+    renderCart();
+    message("saleMessage","Sale completed: " + receipt.invoiceNo + " | " + receipt.total.toFixed(2) + " " + businessCurrency);
+    showReceipt(receipt);
     await loadProducts();
     await loadSales();
   }catch(e){ message("saleMessage", errText(e)); }
   $("saleBtn").disabled = false;
+}
+
+function showReceipt(r){
+  const rows = r.items.map(i => `<tr>
+    <td>${escapeHTML(i.name)}</td>
+    <td>${Number(i.qty)} ${escapeHTML(i.unit)}</td>
+    <td>${i.unitPrice.toFixed(2)}</td>
+    <td>${i.lineTotal.toFixed(2)}</td></tr>`).join("");
+  const cur = escapeHTML(businessCurrency);
+  $("receiptBox").innerHTML = `
+    <h3 style="text-align:center;margin:0">${escapeHTML(bizName)}</h3>
+    <div class="small" style="text-align:center">${escapeHTML(bizPhone)}</div>
+    <p class="small">Invoice: ${escapeHTML(r.invoiceNo)}<br>Date: ${escapeHTML(new Date().toLocaleString())}<br>Payment: ${escapeHTML(r.method)}</p>
+    <table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>
+    <p>Subtotal: ${r.subtotal.toFixed(2)} ${cur}<br>Discount: ${r.discount.toFixed(2)} ${cur}<br><b>Total: ${r.total.toFixed(2)} ${cur}</b></p>
+    <p style="text-align:center">Thank you!</p>
+    <button class="noprint" onclick="window.print()">Print Receipt</button>
+    <button class="noprint danger" onclick="closeReceipt()">Close</button>`;
+  $("receiptBox").classList.remove("hidden");
+  $("receiptBox").scrollIntoView();
+}
+
+function closeReceipt(){
+  $("receiptBox").classList.add("hidden");
+  $("receiptBox").innerHTML = "";
 }
 
 async function loadSales(){
@@ -527,9 +650,12 @@ function updateDashboard(){
   $("totalProfit").textContent = sales.reduce((s,x) => s + Number(x.profit||0), 0).toFixed(2);
   $("currencyDisplay").textContent = businessCurrency;
 
-  $("recentSales").innerHTML = sales.slice(0,5).map(s =>
-    `<p>${escapeHTML(s.productName)} — ${Number(s.quantity)} × ${Number(s.unitPrice).toFixed(2)} = ${Number(s.total).toFixed(2)} ${escapeHTML(s.currency)}</p>`
-  ).join("") || "No sales yet.";
+  $("recentSales").innerHTML = sales.slice(0,5).map(s => {
+    const what = Array.isArray(s.items)
+      ? s.items.map(i => escapeHTML(i.name) + " ×" + Number(i.qty)).join(", ")
+      : escapeHTML(s.productName || "");
+    return `<p>${escapeHTML(s.invoiceNo || "")} ${what} = ${Number(s.total||0).toFixed(2)} ${escapeHTML(s.currency||"")}</p>`;
+  }).join("") || "No sales yet.";
 }
 </script>
 </body>
