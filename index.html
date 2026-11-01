@@ -28,7 +28,7 @@ button:disabled{opacity:.5}
 <label>Password (min 6 characters)</label>
 <input id="pass" type="password" autocomplete="current-password">
 <button id="loginBtn">Login</button>
-<button class="s" id="regBtn">Create new account</button>
+<button class="s" id="regBtn">Create new account</button><button class="s" id="forgotBtn" style="background:#64748B">Forgot password?</button>
 </div>
 
 <div class="card" id="setupBox" style="display:none">
@@ -71,7 +71,7 @@ button:disabled{opacity:.5}
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,doc,collection,getDoc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app=initializeApp({
@@ -142,6 +142,15 @@ onAuthStateChanged(auth,u=>{
 if(!u){screen("authBox");return}
 loadHome(u);
 });
-</script>
+</script>document.getElementById("forgotBtn").addEventListener("click", async () => {
+  const em = document.getElementById("email").value.trim();
+  if (!em) { alert("پہلے ای میل لکھیں"); return; }
+  try {
+    await sendPasswordResetEmail(auth, em);
+    alert("ری سیٹ لنک ای میل پر بھیج دیا گیا ہے۔ Spam فولڈر بھی دیکھیں۔");
+  } catch (e) {
+    alert("Error: " + e.code);
+  }
+});
 </body>
 </html>
