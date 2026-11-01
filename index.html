@@ -7,11 +7,14 @@
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#F6F8FE;color:#12234F}
 header{background:#2563EB;color:#fff;padding:14px;font-weight:800}
-main{max-width:420px;margin:16px auto;padding:0 14px}
-.card{background:#fff;border:1px solid #DCE4F8;border-radius:14px;padding:16px}
-input{width:100%;box-sizing:border-box;padding:12px;margin:6px 0 12px;border:1px solid #DCE4F8;border-radius:10px;font-size:16px}
+main{max-width:460px;margin:16px auto;padding:0 14px 40px}
+.card{background:#fff;border:1px solid #DCE4F8;border-radius:14px;padding:16px;margin-bottom:12px}
+label{display:block;font-size:14px;margin-top:4px}
+input,select{width:100%;box-sizing:border-box;padding:12px;margin:6px 0 12px;border:1px solid #DCE4F8;border-radius:10px;font-size:16px;background:#fff;color:#12234F}
 button{width:100%;padding:13px;border:0;border-radius:12px;font-size:16px;font-weight:700;color:#fff;background:#2563EB;margin-top:4px}
 button.s{background:#EC4899}
+button:disabled{opacity:.5}
+.row{padding:8px 0;border-bottom:1px solid #DCE4F8}
 #msg{margin-top:12px;padding:10px;border-radius:10px;background:#FEEEDF;display:none}
 </style>
 </head>
@@ -27,9 +30,41 @@ button.s{background:#EC4899}
 <button id="loginBtn">Login</button>
 <button class="s" id="regBtn">Create new account</button>
 </div>
+
+<div class="card" id="setupBox" style="display:none">
+<h2>Set up your business</h2>
+<label>Business name</label>
+<input id="bizName">
+<label>Owner name</label>
+<input id="ownerName">
+<label>Mobile number</label>
+<input id="mobile" type="tel">
+<label>Country</label>
+<input id="country" value="Pakistan">
+<label>City</label>
+<input id="city">
+<label>Business category</label>
+<select id="category"></select>
+<label>Currency</label>
+<select id="currency"></select>
+<label>Language</label>
+<select id="language">
+<option value="en">English</option>
+<option value="ur">Urdu</option>
+<option value="ar">Arabic</option>
+</select>
+<button id="saveBiz">Save business</button>
+<button class="s" id="outBtn2">Logout</button>
+</div>
+
 <div class="card" id="homeBox" style="display:none">
-<h2>Welcome</h2>
-<p id="who"></p>
+<h2 id="homeTitle">Welcome</h2>
+<div class="row" id="hUser"></div>
+<div class="row" id="hCat"></div>
+<div class="row" id="hPlace"></div>
+<div class="row" id="hCur"></div>
+<div class="row" id="hRole"></div>
+<div class="row" id="hId"></div>
 <button id="outBtn">Logout</button>
 </div>
 <div id="msg"></div>
@@ -37,6 +72,8 @@ button.s{background:#EC4899}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,collection,getDoc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 const app=initializeApp({
 apiKey:"AIzaSyDn1DwJZZd1QqNvXHyBQLOjyAJGRYext2Y",
 authDomain:"bk-universel-pos.firebaseapp.com",
@@ -46,15 +83,64 @@ messagingSenderId:"387558203185",
 appId:"1:387558203185:web:08bce63843120c0d1bda10"
 });
 const auth=getAuth(app);
+const db=getFirestore(app);
 const $=id=>document.getElementById(id);
 function show(t){const m=$("msg");m.textContent=t;m.style.display="block"}
-$("regBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value);show("Account created.")}catch(e){show("Error: "+e.code)}};
-$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value);show("Login successful.")}catch(e){show("Error: "+e.code)}};
+function hide(){$("msg").style.display="none"}
+
+const cats=["Grocery Store","General Store","Supermarket","Clothing Store","Shoes Store","Restaurant","Hotel","Cafe","Bakery","Pharmacy","Medical Store","Electronics Store","Mobile Shop","Computer Shop","Hardware Store","Building Materials Store","Fruit Shop","Vegetable Shop","Wholesale Business","Retail Business","Cosmetics Store","Beauty Store","Stationery Store","Book Store","Toy Store","Furniture Store","Automobile Parts","Motorcycle Parts","Agriculture Store","Dairy Shop","Meat Shop","Fish Shop","Online Store","Distributor","Manufacturing Business","Import and Export Business","Service Business","Other Business"];
+const curs=["PKR","USD","EUR","GBP","AED","SAR","CNY","INR","CAD","AUD","JPY"];
+$("category").innerHTML=cats.map(c=>'<option>'+c+'</option>').join("");
+$("currency").innerHTML=curs.map(c=>'<option>'+c+'</option>').join("");
+
+function screen(n){
+["authBox","setupBox","homeBox"].forEach(id=>$(id).style.display=(id===n?"block":"none"));
+}
+
+$("regBtn").onclick=async()=>{hide();try{await createUserWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value);show("Account created.")}catch(e){show("Error: "+e.code)}};
+$("loginBtn").onclick=async()=>{hide();try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value);show("Login successful.")}catch(e){show("Error: "+e.code)}};
 $("outBtn").onclick=()=>signOut(auth);
+$("outBtn2").onclick=()=>signOut(auth);
+
+$("saveBiz").onclick=async()=>{
+const u=auth.currentUser;if(!u)return;
+const name=$("bizName").value.trim(),owner=$("ownerName").value.trim();
+if(!name||!owner){show("Please enter business name and owner name.");return}
+$("saveBiz").disabled=true;
+try{
+const bizRef=doc(collection(db,"businesses"));
+const b=writeBatch(db);
+b.set(doc(db,"users",u.uid),{ownerName:owner,email:u.email,mobile:$("mobile").value.trim(),defaultBusinessId:bizRef.id,createdAt:serverTimestamp()});
+b.set(bizRef,{name:name,ownerId:u.uid,category:$("category").value,country:$("country").value.trim(),city:$("city").value.trim(),currency:$("currency").value,language:$("language").value,createdAt:serverTimestamp()});
+b.set(doc(db,"businesses",bizRef.id,"members",u.uid),{role:"owner",name:owner,email:u.email,createdAt:serverTimestamp()});
+await b.commit();
+show("Business saved.");
+await loadHome(u);
+}catch(e){show("Error: "+e.code);$("saveBiz").disabled=false}
+};
+
+async function loadHome(u){
+try{
+const us=await getDoc(doc(db,"users",u.uid));
+if(!us.exists()){screen("setupBox");$("saveBiz").disabled=false;return}
+const bid=us.data().defaultBusinessId;
+const bs=await getDoc(doc(db,"businesses",bid));
+const m=await getDoc(doc(db,"businesses",bid,"members",u.uid));
+const b=bs.data();
+$("homeTitle").textContent=b.name;
+$("hUser").textContent="Owner: "+us.data().ownerName+" ("+u.email+")";
+$("hCat").textContent="Category: "+b.category;
+$("hPlace").textContent="Location: "+b.city+", "+b.country;
+$("hCur").textContent="Currency: "+b.currency+" | Language: "+b.language;
+$("hRole").textContent="Your role: "+m.data().role;
+$("hId").textContent="Business ID: "+bid;
+screen("homeBox");
+}catch(e){show("Error: "+e.code);screen("homeBox")}
+}
+
 onAuthStateChanged(auth,u=>{
-$("authBox").style.display=u?"none":"block";
-$("homeBox").style.display=u?"block":"none";
-if(u)$("who").textContent="Logged in as: "+u.email;
+if(!u){screen("authBox");return}
+loadHome(u);
 });
 </script>
 </body>
