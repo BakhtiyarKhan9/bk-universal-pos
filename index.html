@@ -1,653 +1,536 @@
-PROJECT NAME: BK UNIVERSAL POS
-PRODUCT TYPE: GLOBAL UNIVERSAL POINT OF SALE & BUSINESS MANAGEMENT SOFTWARE
-BRAND: BK UNIVERSAL POS
-TAGLINE: ONE PLATFORM. EVERY BUSINESS. EVERYWHERE.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BK UNIVERSAL POS</title>
 
-ROLE:
-Act as a world-class software architect, senior full-stack developer, database engineer, cybersecurity engineer, UI/UX designer and international SaaS product developer.
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-MAIN OBJECTIVE:
-Build a complete, professional, scalable and production-ready global POS and business management platform. It must support real business operations, real database integration, secure authentication, inventory, sales, purchases, accounting, employees, branches and international business operations.
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f5fa;color:#17233b}
+header{background:#102c59;color:white;padding:18px;font-size:22px;font-weight:bold}
+.container{max-width:1100px;margin:auto;padding:20px}
+.card{background:white;padding:20px;margin:12px 0;border-radius:12px;box-shadow:0 2px 10px #0001}
+input,select,button{padding:12px;margin:6px 0;width:100%;border:1px solid #ccd4e0;border-radius:7px;font-size:15px}
+button{background:#174a91;color:white;border:0;cursor:pointer;font-weight:bold}
+button:hover{background:#0c3268}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.mini{width:auto;padding:8px 12px;margin:2px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{background:#eaf1ff;padding:18px;border-radius:10px}
+.stat h2{color:#174a91;margin:8px 0}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+nav button{width:auto;flex:1;min-width:100px}
+table{width:100%;border-collapse:collapse;background:white}
+td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}
+.hidden{display:none}
+.small{color:#65738a;font-size:13px}
+.danger{background:#b52c36}
+.low{color:#b52c36;font-weight:bold}
+</style>
+</head>
 
-IMPORTANT:
-Do not create only a demo, landing page or static UI. Implement working features with persistent database operations, validation, authorization, error handling and tests. Never claim a feature works when it is only a placeholder.
+<body>
+<header>BK UNIVERSAL POS</header>
 
-==================================================
-1. PLATFORMS
-==================================================
-- Responsive Web Application.
-- Desktop and Laptop support.
-- Android and iPhone support.
-- Installable Progressive Web App.
-- Prepare native mobile builds using Capacitor.
-- Touch-friendly mobile interface.
-- Responsive desktop sidebar and mobile navigation.
-- Secure cloud synchronization.
+<div class="container">
 
-==================================================
-2. TECHNOLOGY STACK
-==================================================
-- React.
-- TypeScript.
-- Vite.
-- Firebase Authentication.
-- Cloud Firestore.
-- Firebase Storage.
-- Firebase Cloud Functions.
-- Firebase App Check.
-- Capacitor for Android and iOS.
-- PWA service worker.
-- Reusable components and maintainable architecture.
-- Automated tests.
-- Never expose service account credentials or secret API keys in client code.
+<!-- LOGIN -->
+<section id="loginSection" class="card">
+<h2>Login / Register</h2>
+<input id="email" type="email" placeholder="Email address" autocomplete="email">
+<input id="password" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password">
+<button id="loginBtn" onclick="login()">Login</button>
+<button id="regBtn" onclick="register()" style="background:#EC4899">Create Account</button>
+<button id="forgotBtn" onclick="forgotPassword()" style="background:#64748B">Forgot Password</button>
+<p id="authMessage" class="small"></p>
+</section>
 
-Preserve compatibility with existing Firebase project:
-Project ID: bk-universel-pos
+<!-- APP -->
+<section id="appSection" class="hidden">
 
-Existing data collections:
-users
-businesses
-businesses/{businessId}/members
-businesses/{businessId}/products
+<div class="card">
+<div id="userInfo"></div>
+<button class="danger" onclick="logout()">Logout</button>
+</div>
 
-Inspect the existing project before making changes. Do not delete existing data. Create safe migration procedures.
+<nav>
+<button onclick="showPage('dashboard')">Dashboard</button>
+<button onclick="showPage('business')">Business</button>
+<button onclick="showPage('products')">Products</button>
+<button onclick="showPage('pos')">POS Sales</button>
+</nav>
 
-==================================================
-3. BRANDING AND PROFESSIONAL DESIGN
-==================================================
-- Product name: BK UNIVERSAL POS.
-- Premium international SaaS design.
-- Royal blue, navy blue, white and grey.
-- Professional typography.
-- Modern dashboard cards.
-- Interactive charts.
-- Professional tables.
-- Responsive navigation.
-- Light and dark themes.
-- Custom business logo.
-- Custom invoice branding.
-- Smooth navigation.
-- Accessibility and mobile usability.
-- Beautiful loading, success, empty and error states.
+<!-- DASHBOARD -->
+<div id="dashboard" class="page">
+<h2>Business Dashboard</h2>
+<div class="grid">
+<div class="stat">Total Products<h2 id="totalProducts">0</h2></div>
+<div class="stat">Total Sales<h2 id="totalSales">0</h2></div>
+<div class="stat">Total Profit<h2 id="totalProfit">0</h2></div>
+<div class="stat">Low Stock<h2 id="lowStock">0</h2></div>
+<div class="stat">Currency<h2 id="currencyDisplay">PKR</h2></div>
+</div>
+<div class="card">
+<h3>Recent Sales</h3>
+<div id="recentSales">No sales yet.</div>
+</div>
+</div>
 
-==================================================
-4. AUTHENTICATION AND USER ACCOUNTS
-==================================================
-- Email registration.
-- Email login.
-- Forgot password.
-- Password reset.
-- Email verification.
-- Secure logout.
-- User profiles.
-- Account settings.
-- Protected routes.
-- Session management.
-- Business onboarding.
-- Multiple business access.
-- Secure invitation system.
+<!-- BUSINESS -->
+<div id="business" class="page hidden">
+<div class="card">
+<h2>Business Setup</h2>
+<input id="businessName" placeholder="Business Name">
+<input id="ownerName" placeholder="Owner Name">
+<input id="country" placeholder="Country">
+<input id="city" placeholder="City">
+<input id="phone" placeholder="Phone">
+<select id="currency">
+<option value="PKR">PKR</option>
+<option value="USD">USD</option>
+<option value="EUR">EUR</option>
+<option value="GBP">GBP</option>
+<option value="AED">AED</option>
+<option value="SAR">SAR</option>
+<option value="INR">INR</option>
+<option value="CAD">CAD</option>
+<option value="AUD">AUD</option>
+<option value="JPY">JPY</option>
+</select>
+<button id="saveBizBtn" onclick="saveBusiness()">Save Business</button>
+<p id="businessMessage" class="small"></p>
+</div>
+</div>
 
-==================================================
-5. BUSINESS MANAGEMENT
-==================================================
-- Create multiple businesses.
-- Edit business information.
-- Business name.
-- Owner information.
-- Business category.
-- Country and city.
-- Address and phone.
-- Email and website.
-- Tax registration information.
-- Business logo.
-- Business switching.
-- Business-specific database isolation.
-- Multiple branches.
-- Branch management.
-- Business activation and status.
+<!-- PRODUCTS -->
+<div id="products" class="page hidden">
+<div class="card">
+<h2 id="productFormTitle">Add Product</h2>
+<input id="productName" placeholder="Product Name">
+<select id="unit">
+<option>pcs</option><option>kg</option><option>g</option><option>litre</option>
+<option>packet</option><option>box</option><option>bag</option><option>dozen</option>
+</select>
+<input id="sku" placeholder="SKU (optional)">
+<input id="barcode" placeholder="Barcode (optional)">
+<input id="cost" type="number" min="0" step="any" placeholder="Purchase Price">
+<input id="price" type="number" min="0" step="any" placeholder="Sale Price">
+<input id="stock" type="number" min="0" step="any" placeholder="Stock">
+<input id="minStock" type="number" min="0" step="any" placeholder="Minimum Stock">
+<button id="saveProdBtn" onclick="saveProduct()">Save Product</button>
+<button id="cancelEdit" class="danger hidden" onclick="cancelEdit()">Cancel Edit</button>
+<p id="productMessage" class="small"></p>
+</div>
+<div class="card">
+<h2>Product Inventory</h2>
+<input id="productSearch" placeholder="Search products..." oninput="renderProducts()">
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Product</th><th>Cost</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
+<tbody id="productTable"></tbody>
+</table>
+</div>
+</div>
+</div>
 
-==================================================
-6. DASHBOARD
-==================================================
-Show:
-- Total sales today.
-- Total sales this week.
-- Total sales this month.
-- Total purchases.
-- Gross profit.
-- Net profit.
-- Total expenses.
-- Cash balance.
-- Bank balance.
-- Customer receivables.
-- Supplier payables.
-- Total products.
-- Low-stock alerts.
-- Recent sales.
-- Recent purchases.
-- Sales charts.
-- Expense charts.
-- Date filters.
-- Branch filters.
-- Business filters.
+<!-- POS -->
+<div id="pos" class="page hidden">
+<div class="card">
+<h2>Point of Sale</h2>
+<input id="saleSearch" placeholder="Search product name, SKU or barcode">
+<button onclick="searchSaleProduct()">Find Product</button>
+<div id="saleProduct" class="small"></div>
+<input id="saleQuantity" type="number" min="0" step="any" value="1" placeholder="Quantity">
+<select id="paymentMethod">
+<option>Cash</option>
+<option>Card</option>
+<option>Bank Transfer</option>
+<option>Digital Wallet</option>
+</select>
+<button id="saleBtn" onclick="completeSale()">Complete Sale</button>
+<p id="saleMessage" class="small"></p>
+</div>
+</div>
 
-==================================================
-7. PRODUCT MANAGEMENT
-==================================================
-- Add products.
-- Edit products.
-- Archive products.
-- Delete products with appropriate controls.
-- Product name.
-- SKU.
-- Barcode.
-- Product category.
-- Brand.
-- Product image.
-- Description.
-- Purchase price.
-- Wholesale price.
-- Retail price.
-- Multiple units.
-- Custom units.
-- Product variants.
-- Opening stock.
-- Current stock.
-- Minimum stock.
-- Maximum stock.
-- Stock valuation.
-- Barcode generation.
-- Barcode scanning.
-- Product search.
-- Product filtering.
-- Low-stock alerts.
-- Stock adjustment history.
+</section>
+</div>
 
-==================================================
-8. INVENTORY MANAGEMENT
-==================================================
-- Real-time stock management.
-- Stock in.
-- Stock out.
-- Stock adjustment.
-- Stock transfer between branches.
-- Damaged goods.
-- Expired products.
-- Batch tracking.
-- Serial number tracking.
-- Stock audit.
-- Stock valuation.
-- Low-stock notifications.
-- Inventory reports.
-- Prevent negative stock unless authorized.
-- Atomic stock operations.
-- Audit every inventory change.
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDn1DwJZZd1QqNvXHyBQLOjyAJGRYext2Y",
+  authDomain: "bk-universel-pos.firebaseapp.com",
+  projectId: "bk-universel-pos",
+  storageBucket: "bk-universel-pos.firebasestorage.app",
+  messagingSenderId: "387558203185",
+  appId: "1:387558203185:web:08bce63843120c0d1bda10"
+};
 
-==================================================
-9. POS SALES AND BILLING
-==================================================
-- Fast POS checkout.
-- Product search.
-- Barcode scanner.
-- Shopping cart.
-- Quantity changes.
-- Discounts.
-- Tax calculation.
-- Multiple payment methods.
-- Split payments.
-- Cash payments.
-- Card payments.
-- Bank transfers.
-- Supported digital wallets.
-- Customer selection.
-- Hold sale.
-- Resume sale.
-- Cancel sale.
-- Return sales.
-- Refund management.
-- Invoice generation.
-- Unique invoice numbers.
-- PDF invoices.
-- Printable receipts.
-- Thermal printer support.
-- Sales history.
-- Cashier identification.
-- Secure transaction processing.
-- Idempotency protection against duplicate sales.
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const $ = id => document.getElementById(id);
 
-==================================================
-10. PURCHASE MANAGEMENT
-==================================================
-- Purchase orders.
-- Purchase invoices.
-- Supplier selection.
-- Product selection.
-- Purchase quantity.
-- Purchase price.
-- Discounts.
-- Taxes.
-- Purchase payments.
-- Partial payments.
-- Purchase returns.
-- Supplier balances.
-- Purchase history.
-- Automatic stock updates.
-- Secure purchase transactions.
+let currentUser = null;
+let businessId = null;
+let selectedProduct = null;
+let products = [];
+let sales = [];
+let businessCurrency = "PKR";
+let editingId = null;
 
-==================================================
-11. CUSTOMER MANAGEMENT
-==================================================
-- Add customers.
-- Edit customer profiles.
-- Customer name.
-- Mobile number.
-- Email.
-- Address.
-- Customer ID.
-- Customer purchase history.
-- Credit sales.
-- Customer balances.
-- Payment history.
-- Customer statements.
-- Refunds.
-- Customer reports.
+const ERR = {
+  "auth/invalid-credential": "Email or password is wrong.",
+  "auth/invalid-email": "Email is not valid.",
+  "auth/missing-password": "Please enter your password.",
+  "auth/email-already-in-use": "This email already has an account. Please Login.",
+  "auth/weak-password": "Password must be at least 6 characters.",
+  "auth/network-request-failed": "No internet connection.",
+  "auth/too-many-requests": "Too many attempts. Please wait a few minutes.",
+  "permission-denied": "Permission denied. Firestore rules need updating."
+};
+function errText(e){ return ERR[e.code] || e.message || "Something went wrong."; }
+function message(id, text){ $(id).textContent = text; }
+function round2(n){ return Math.round(n * 100) / 100; }
+function round3(n){ return Math.round(n * 1000) / 1000; }
 
-==================================================
-12. SUPPLIER MANAGEMENT
-==================================================
-- Add suppliers.
-- Edit supplier profiles.
-- Supplier contact information.
-- Supplier purchase history.
-- Supplier payments.
-- Outstanding balances.
-- Partial payments.
-- Supplier statements.
-- Supplier reports.
+function escapeHTML(value){
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
 
-==================================================
-13. EXPENSE MANAGEMENT
-==================================================
-- Add expenses.
-- Edit expenses.
-- Expense categories.
-- Rent.
-- Electricity.
-- Salaries.
-- Transport.
-- Utilities.
-- Maintenance.
-- Marketing.
-- Other expenses.
-- Expense attachments.
-- Expense approvals.
-- Branch-specific expenses.
-- Expense reports.
+async function register(){
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  if(!email || password.length < 6){
+    return message("authMessage","Enter a valid email and password of at least 6 characters.");
+  }
+  $("regBtn").disabled = true;
+  try{
+    const result = await auth.createUserWithEmailAndPassword(email, password);
+    await db.collection("users").doc(result.user.uid).set({
+      email: email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+    try{ await result.user.sendEmailVerification(); }catch(x){}
+    message("authMessage","Account created. A verification email was sent.");
+  }catch(e){ message("authMessage", errText(e)); }
+  $("regBtn").disabled = false;
+}
 
-==================================================
-14. ACCOUNTING AND FINANCE
-==================================================
-- Cash accounts.
-- Bank accounts.
-- Payment accounts.
-- Cash in.
-- Cash out.
-- Bank deposits.
-- Bank withdrawals.
-- Transfers between accounts.
-- Receivables.
-- Payables.
-- Customer payments.
-- Supplier payments.
-- Financial transaction history.
-- Double-entry accounting ledger.
-- Journal entries.
-- Trial balance.
-- Balance sheet.
-- Cash flow statement.
-- Profit and loss statement.
-- Reconciliation.
-- Financial audit logs.
-- Correct accounting treatment of tax, returns, discounts and cost of goods sold.
+async function login(){
+  message("authMessage","");
+  $("loginBtn").disabled = true;
+  try{
+    await auth.signInWithEmailAndPassword($("email").value.trim(), $("password").value);
+  }catch(e){ message("authMessage", errText(e)); }
+  $("loginBtn").disabled = false;
+}
+$("password").addEventListener("keydown", e => { if(e.key === "Enter") login(); });
 
-Never calculate net profit simply as total sales minus purchases. Use a proper accounting and inventory cost methodology.
+async function forgotPassword(){
+  const email = $("email").value.trim();
+  if(!email) return message("authMessage","Enter your email first.");
+  try{
+    await auth.sendPasswordResetEmail(email);
+    message("authMessage","Reset link sent. Check your email (also Spam).");
+  }catch(e){ message("authMessage", errText(e)); }
+}
 
-==================================================
-15. REPORTS AND ANALYTICS
-==================================================
-- Daily sales report.
-- Weekly sales report.
-- Monthly sales report.
-- Annual sales report.
-- Profit and loss.
-- Purchase report.
-- Expense report.
-- Inventory report.
-- Stock valuation.
-- Best-selling products.
-- Slow-moving products.
-- Customer balances.
-- Supplier balances.
-- Tax reports.
-- Cash flow.
-- Branch comparisons.
-- Export to PDF.
-- Export to CSV.
-- Export to Excel.
-- Date and business filters.
+async function logout(){ await auth.signOut(); }
 
-==================================================
-16. EMPLOYEE MANAGEMENT
-==================================================
-- Owner.
-- Super Admin.
-- Admin.
-- Manager.
-- Cashier.
-- Accountant.
-- Custom roles.
-- Employee invitations.
-- Employee profiles.
-- Employee status.
-- Branch assignment.
-- Role-based permissions.
-- Sales permissions.
-- Purchase permissions.
-- Inventory permissions.
-- Reports permissions.
-- Finance permissions.
-- Payroll-ready architecture.
-- Attendance-ready architecture.
-- Audit logs.
+function clearUI(){
+  businessId = null; products = []; sales = []; selectedProduct = null; editingId = null;
+  ["businessName","ownerName","country","city","phone","saleSearch","productSearch"].forEach(id => $(id).value = "");
+  $("saleProduct").textContent = "";
+  ["businessMessage","productMessage","saleMessage"].forEach(id => $(id).textContent = "");
+  cancelEdit();
+  renderProducts();
+  updateDashboard();
+}
 
-Never trust client-side role information. Verify authorization on the server and in Firestore security rules.
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  $("loginSection").classList.toggle("hidden", !!user);
+  $("appSection").classList.toggle("hidden", !user);
+  if(user){
+    $("userInfo").textContent = "Logged in: " + user.email;
+    showPage("dashboard");
+    await loadBusiness();
+  }else{
+    clearUI();
+  }
+});
 
-==================================================
-17. MULTI-BRANCH MANAGEMENT
-==================================================
-- Multiple branches.
-- Independent branch stock.
-- Branch-specific employees.
-- Branch-specific sales.
-- Branch transfers.
-- Branch expenses.
-- Branch reports.
-- Consolidated business reporting.
-- Branch permissions.
+function showPage(page){
+  document.querySelectorAll(".page").forEach(el => el.classList.add("hidden"));
+  $(page).classList.remove("hidden");
+}
 
-==================================================
-18. GLOBAL COUNTRY AND CURRENCY SYSTEM
-==================================================
-- International country support.
-- ISO country codes.
-- ISO currency codes.
-- PKR.
-- USD.
-- EUR.
-- GBP.
-- AED.
-- SAR.
-- INR.
-- CAD.
-- AUD.
-- CNY.
-- JPY.
-- Additional currencies.
-- Currency decimal precision.
-- Currency formatting.
-- Exchange rates.
-- Historical exchange rates.
-- Country-specific business settings.
-- Country-specific date formats.
-- Time zones.
-- Localized number formats.
-- Regional tax configuration.
+async function saveBusiness(){
+  if(!currentUser) return;
+  const name = $("businessName").value.trim();
+  if(!name) return message("businessMessage","Business name is required.");
 
-Never assume all countries use the same tax rules or currency precision.
+  const data = {
+    name,
+    ownerName: $("ownerName").value.trim(),
+    country: $("country").value.trim(),
+    city: $("city").value.trim(),
+    phone: $("phone").value.trim(),
+    currency: $("currency").value,
+    ownerId: currentUser.uid,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
 
-==================================================
-19. MULTI-LANGUAGE SYSTEM
-==================================================
-- English.
-- Urdu.
-- Arabic.
-- Add more languages through localization files.
-- Right-to-left layout.
-- Left-to-right layout.
-- Translated menus.
-- Translated buttons.
-- Translated invoices.
-- Translated reports.
-- Language selector.
-- Save user language preferences.
+  $("saveBizBtn").disabled = true;
+  try{
+    if(businessId){
+      await db.collection("businesses").doc(businessId).update(data);
+    }else{
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const ref = await db.collection("businesses").add(data);
+      businessId = ref.id;
+      await db.collection("businesses").doc(businessId)
+        .collection("members").doc(currentUser.uid).set({
+          role: "owner",
+          status: "active"
+        });
+    }
+    businessCurrency = data.currency;
+    message("businessMessage","Business saved successfully.");
+    await loadBusiness();
+  }catch(e){ message("businessMessage", errText(e)); }
+  $("saveBizBtn").disabled = false;
+}
 
-==================================================
-20. TAX MANAGEMENT
-==================================================
-- VAT.
-- GST.
-- Sales tax.
-- Tax-inclusive prices.
-- Tax-exclusive prices.
-- Multiple tax rates.
-- Tax exemptions.
-- Country-specific tax rules.
-- Tax reports.
-- Configurable invoice tax fields.
-- Do not hardcode legal tax rates.
-- Allow authorized configuration and local compliance review.
+async function loadBusiness(){
+  if(!currentUser) return;
+  try{
+    const snapshot = await db.collection("businesses")
+      .where("ownerId","==",currentUser.uid).limit(1).get();
 
-==================================================
-21. PAYMENT AND BANK INTEGRATIONS
-==================================================
-- Cash.
-- Credit/debit cards through supported payment processors.
-- Bank transfers.
-- Supported digital wallets.
-- Payment gateway architecture.
-- Provider-specific integrations.
-- Transaction references.
-- Payment reconciliation.
-- Refund support.
-- Secure payment webhooks.
-- Integration status and error handling.
+    if(snapshot.empty){
+      businessId = null;
+      showPage("business");
+      message("businessMessage","Please set up your business first.");
+      return;
+    }
+    const d = snapshot.docs[0];
+    businessId = d.id;
+    const b = d.data();
+    businessCurrency = b.currency || "PKR";
+    $("businessName").value = b.name || "";
+    $("ownerName").value = b.ownerName || "";
+    $("country").value = b.country || "";
+    $("city").value = b.city || "";
+    $("phone").value = b.phone || "";
+    $("currency").value = businessCurrency;
+    await loadProducts();
+    await loadSales();
+  }catch(e){ message("businessMessage", errText(e)); }
+}
 
-Support international integrations only where providers officially operate and provide authorized APIs. Never claim that every bank worldwide is connected. Never store card PINs or sensitive payment credentials.
+async function saveProduct(){
+  if(!businessId) return message("productMessage","Create your business first.");
+  const name = $("productName").value.trim();
+  const costS = $("cost").value, priceS = $("price").value, stockS = $("stock").value;
+  const cost = Number(costS), price = Number(priceS), stock = Number(stockS);
+  const minStock = Number($("minStock").value || 0);
 
-==================================================
-22. OFFLINE MODE AND SYNCHRONIZATION
-==================================================
-- Installable PWA.
-- Offline application shell.
-- Local persistent data where safe.
-- Offline transaction queue.
-- Sync status.
-- Retry failed synchronization.
-- Unique transaction IDs.
-- Duplicate transaction prevention.
-- Conflict resolution.
-- Secure server reconciliation.
-- Clearly show when operations are offline.
-- Never promise all banking or financial operations offline.
+  if(!name || costS === "" || priceS === "" || stockS === "" ||
+     !Number.isFinite(cost) || !Number.isFinite(price) || !Number.isFinite(stock) ||
+     !Number.isFinite(minStock) || cost < 0 || price < 0 || stock < 0 || minStock < 0){
+    return message("productMessage","Enter product name, purchase price, sale price and stock (non-negative numbers).");
+  }
 
-==================================================
-23. SECURITY AND DATA PROTECTION
-==================================================
-- Firebase Authentication.
-- Firestore Security Rules.
-- Tenant isolation.
-- Business-level authorization.
-- Branch-level authorization.
-- Server-side validation.
-- Cloud Functions.
-- Firebase App Check.
-- Audit logs.
-- Secure input validation.
-- Safe HTML rendering.
-- Secure file uploads.
-- Rate limiting where applicable.
-- Data backup.
-- Disaster recovery.
-- Privacy controls.
-- No public access to private business records.
-- Security testing.
-- Never expose private credentials.
+  const data = {
+    name,
+    unit: $("unit").value,
+    sku: $("sku").value.trim(),
+    barcode: $("barcode").value.trim(),
+    cost, price, stock, minStock
+  };
 
-==================================================
-24. NOTIFICATIONS
-==================================================
-- Low stock alerts.
-- Sales notifications.
-- Purchase notifications.
-- Customer payment reminders.
-- Supplier payment reminders.
-- Expense notifications.
-- Employee alerts.
-- Email notifications.
-- Push notifications.
-- User notification settings.
+  $("saveProdBtn").disabled = true;
+  try{
+    const col = db.collection("businesses").doc(businessId).collection("products");
+    if(editingId){
+      data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await col.doc(editingId).update(data);
+      message("productMessage","Product updated.");
+    }else{
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await col.add(data);
+      message("productMessage","Product saved.");
+    }
+    cancelEdit(true);
+    await loadProducts();
+  }catch(e){ message("productMessage", errText(e)); }
+  $("saveProdBtn").disabled = false;
+}
 
-==================================================
-25. BACKUP AND RESTORE
-==================================================
-- Scheduled database backups.
-- Backup history.
-- Restore procedures.
-- Export business data.
-- CSV and PDF exports.
-- Secure backup storage.
-- Backup access permissions.
-- Document recovery process.
+function cancelEdit(keepMessage){
+  editingId = null;
+  ["productName","sku","barcode","cost","price","stock","minStock"].forEach(id => $(id).value = "");
+  $("unit").value = "pcs";
+  $("productFormTitle").textContent = "Add Product";
+  $("saveProdBtn").textContent = "Save Product";
+  $("cancelEdit").classList.add("hidden");
+  if(!keepMessage) message("productMessage","");
+}
 
-==================================================
-26. SUBSCRIPTION AND SAAS ARCHITECTURE
-==================================================
-- Free plan architecture.
-- Paid plan architecture.
-- Subscription management.
-- Plan limits.
-- Business limits.
-- Branch limits.
-- Employee limits.
-- Billing history.
-- Payment integration.
-- Subscription status.
-- Admin controls.
-- Do not charge users until an actual payment integration is configured.
+function editProduct(id){
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+  editingId = id;
+  $("productName").value = p.name || "";
+  $("unit").value = p.unit || "pcs";
+  $("sku").value = p.sku || "";
+  $("barcode").value = p.barcode || "";
+  $("cost").value = p.cost;
+  $("price").value = p.price;
+  $("stock").value = p.stock;
+  $("minStock").value = p.minStock || 0;
+  $("productFormTitle").textContent = "Edit Product";
+  $("saveProdBtn").textContent = "Update Product";
+  $("cancelEdit").classList.remove("hidden");
+  message("productMessage","");
+  window.scrollTo(0,0);
+}
 
-==================================================
-27. ADMINISTRATION PANEL
-==================================================
-- Platform administration.
-- Business account overview.
-- User account overview.
-- Subscription management.
-- System health.
-- Integration monitoring.
-- Support management.
-- Security event monitoring.
-- Admin activity logs.
-- Strict Super Admin authorization.
-- Never grant admin rights through public registration.
+async function loadProducts(){
+  if(!businessId) return;
+  try{
+    const snap = await db.collection("businesses").doc(businessId).collection("products").get();
+    products = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    products.sort((a,b) => String(a.name||"").localeCompare(String(b.name||"")));
+    renderProducts();
+    updateDashboard();
+  }catch(e){ message("productMessage", errText(e)); }
+}
 
-==================================================
-28. SUPPORT AND HELP CENTER
-==================================================
-- Help center.
-- Frequently asked questions.
-- User guides.
-- Contact support.
-- Report a problem.
-- Terms and conditions.
-- Privacy policy.
-- About BK UNIVERSAL POS.
+function renderProducts(){
+  const q = ($("productSearch").value || "").toLowerCase();
+  const rows = products.filter(p =>
+    (p.name||"").toLowerCase().includes(q) ||
+    (p.barcode||"").toLowerCase().includes(q) ||
+    (p.sku||"").toLowerCase().includes(q)
+  );
+  $("productTable").innerHTML = rows.map(p => {
+    const low = Number(p.stock||0) <= Number(p.minStock||0);
+    return `<tr>
+      <td>${escapeHTML(p.name)}<div class="small">${escapeHTML(p.unit||"")}</div></td>
+      <td>${Number(p.cost||0).toFixed(2)}</td>
+      <td>${Number(p.price||0).toFixed(2)}</td>
+      <td class="${low?"low":""}">${Number(p.stock||0)}</td>
+      <td>
+        <button class="mini" onclick="editProduct('${p.id}')">Edit</button>
+        <button class="mini danger" onclick="deleteProduct('${p.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
 
-==================================================
-29. REQUIRED PROJECT DELIVERABLES
-==================================================
-Provide:
-- Complete source code.
-- Project folder structure.
-- React and TypeScript files.
-- Firebase configuration.
-- Firestore schema.
-- Firestore Security Rules.
-- Firestore indexes.
-- Cloud Functions.
-- Database migration scripts.
-- PWA configuration.
-- Capacitor configuration.
-- Automated tests.
-- Sample development data.
-- Installation instructions.
-- Deployment instructions.
-- Android build instructions.
-- iOS build instructions.
-- Google Play Store publishing guide.
-- Apple App Store publishing guide.
-- Security checklist.
-- Production launch checklist.
+async function deleteProduct(id){
+  if(!confirm("Delete this product?")) return;
+  try{
+    await db.collection("businesses").doc(businessId).collection("products").doc(id).delete();
+    if(editingId === id) cancelEdit();
+    await loadProducts();
+  }catch(e){ message("productMessage", errText(e)); }
+}
 
-==================================================
-30. DEVELOPMENT WORKFLOW
-==================================================
-1. Inspect existing source code.
-2. Inspect Firebase configuration.
-3. Preserve existing users and businesses.
-4. Back up existing data.
-5. Create migration-safe architecture.
-6. Build reusable components.
-7. Implement real database operations.
-8. Implement security rules.
-9. Implement each module.
-10. Test each module.
-11. Fix errors.
-12. Provide complete files.
-13. Explain where each file belongs.
-14. Maintain a completed and pending feature checklist.
-15. Do not silently omit requirements.
-16. Do not replace existing working functionality with fake demo functionality.
+function searchSaleProduct(){
+  const q = $("saleSearch").value.trim().toLowerCase();
+  if(!q){ selectedProduct = null; $("saleProduct").textContent = "Enter a product name, SKU or barcode."; return; }
+  selectedProduct =
+    products.find(p => (p.name||"").toLowerCase()===q || (p.barcode||"").toLowerCase()===q || (p.sku||"").toLowerCase()===q) ||
+    products.find(p => (p.name||"").toLowerCase().includes(q));
+  $("saleProduct").textContent = selectedProduct
+    ? `${selectedProduct.name} | Price: ${selectedProduct.price} ${businessCurrency} per ${selectedProduct.unit||"unit"} | Stock: ${selectedProduct.stock}`
+    : "Product not found.";
+}
 
-If output limits prevent generating the whole application at once, work in sequential phases and maintain continuity. Never pretend unfinished modules are complete.
+async function completeSale(){
+  if(!businessId || !selectedProduct) return message("saleMessage","Select a product first.");
 
-==================================================
-31. FINAL GLOBAL INTERNATIONAL COMPATIBILITY REQUIREMENT
-==================================================
+  const quantity = Number($("saleQuantity").value);
+  const method = $("paymentMethod").value;
+  if(!Number.isFinite(quantity) || quantity <= 0){
+    return message("saleMessage","Enter a valid quantity greater than zero.");
+  }
 
-BK UNIVERSAL POS MUST BE DESIGNED AS A GLOBALLY DEPLOYABLE BUSINESS MANAGEMENT PLATFORM.
+  const productRef = db.collection("businesses").doc(businessId).collection("products").doc(selectedProduct.id);
+  const saleRef = db.collection("businesses").doc(businessId).collection("sales").doc();
 
-The system must be architected for businesses in all countries, with configurable country-specific settings, currencies, languages, time zones, tax rules, invoice formats, payment gateways and banking integrations.
+  $("saleBtn").disabled = true;
+  try{
+    let total = 0;
+    await db.runTransaction(async tx => {
+      const productDoc = await tx.get(productRef);
+      if(!productDoc.exists) throw new Error("Product no longer exists.");
 
-Do not hardcode Pakistan-specific business rules. Support international expansion, localization, regional compliance and scalable cloud infrastructure.
+      const p = productDoc.data();
+      if(Number(p.stock) < quantity) throw new Error("Insufficient stock. Available: " + p.stock);
 
-The platform must be designed to serve:
-- Small retail shops.
-- Grocery stores.
-- Supermarkets.
-- Restaurants.
-- Hotels.
-- Cafes.
-- Bakeries.
-- Pharmacies.
-- Medical stores.
-- Clothing stores.
-- Electronics stores.
-- Mobile shops.
-- Hardware stores.
-- Wholesalers.
-- Distributors.
-- Manufacturers.
-- Import and export businesses.
-- Service businesses.
-- Large enterprises.
+      total = round2(Number(p.price) * quantity);
+      const costTotal = round2(Number(p.cost||0) * quantity);
+      tx.update(productRef, {stock: round3(Number(p.stock) - quantity)});
+      tx.set(saleRef, {
+        productId: selectedProduct.id,
+        productName: p.name,
+        unit: p.unit || "",
+        quantity,
+        unitPrice: Number(p.price),
+        unitCost: Number(p.cost||0),
+        total,
+        costTotal,
+        profit: round2(total - costTotal),
+        currency: businessCurrency,
+        paymentMethod: method,
+        cashierId: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
 
-Support multiple countries, multiple currencies, multiple languages, multiple businesses, multiple branches and multiple employee roles.
+    message("saleMessage","Sale completed: " + total.toFixed(2) + " " + businessCurrency);
+    selectedProduct = null;
+    $("saleProduct").textContent = "";
+    $("saleSearch").value = "";
+    $("saleQuantity").value = "1";
+    await loadProducts();
+    await loadSales();
+  }catch(e){ message("saleMessage", errText(e)); }
+  $("saleBtn").disabled = false;
+}
 
-All international integrations must use verified providers and officially supported APIs.
+async function loadSales(){
+  if(!businessId) return;
+  try{
+    const snap = await db.collection("businesses").doc(businessId).collection("sales").get();
+    sales = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    sales.sort((a,b) => ((b.createdAt&&b.createdAt.seconds)||0) - ((a.createdAt&&a.createdAt.seconds)||0));
+    updateDashboard();
+  }catch(e){ message("saleMessage", errText(e)); }
+}
 
-Make the application ready for global expansion while clearly identifying country-specific compliance, integration and deployment requirements.
+function updateDashboard(){
+  $("totalProducts").textContent = products.length;
+  $("lowStock").textContent = products.filter(p => Number(p.stock||0) <= Number(p.minStock||0)).length;
+  $("totalSales").textContent = sales.reduce((s,x) => s + Number(x.total||0), 0).toFixed(2);
+  $("totalProfit").textContent = sales.reduce((s,x) => s + Number(x.profit||0), 0).toFixed(2);
+  $("currencyDisplay").textContent = businessCurrency;
 
-FINAL PRODUCT VISION:
-BK UNIVERSAL POS — ONE PLATFORM. EVERY BUSINESS. EVERYWHERE.
-
-Create a professional, secure, scalable and maintainable global POS and business management platform for computers, Android and iPhone.
+  $("recentSales").innerHTML = sales.slice(0,5).map(s =>
+    `<p>${escapeHTML(s.productName)} — ${Number(s.quantity)} × ${Number(s.unitPrice).toFixed(2)} = ${Number(s.total).toFixed(2)} ${escapeHTML(s.currency)}</p>`
+  ).join("") || "No sales yet.";
+}
+</script>
+</body>
+</html>
